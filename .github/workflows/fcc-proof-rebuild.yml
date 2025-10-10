@@ -1,0 +1,69 @@
+name: FCC Proof Rebuild & Timestamp
+
+on:
+  workflow_dispatch:        # allows manual run
+  schedule:
+    - cron: "0 5 1 * *"     # runs monthly on the 1st at 05:00 UTC
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Prepare directories
+        run: mkdir -p proofs secrets
+
+      - name: Restore private signing key
+        run: echo "$PRIVATE_KEY" > secrets/fcc_signing_key.pem
+        env:
+          PRIVATE_KEY: ${{ secrets.FCC_SIGNING_KEY_PEM }}
+
+      - name: Rebuild manifest
+        run: node scripts/hash-certificates.cjs \
+          --source ./cdn \
+          --base-url https://cdn.flyingcircuscoffee.com \
+          --out ./proofs/fcc_cert_manifest.json
+
+      - name: Sign manifest
+        run: node scripts/sign-manifest.cjs \
+          --manifest ./proofs/fcc_cert_manifest.json \
+          --private ./secrets/fcc_signing_key.pem \
+          --out ./proofs/fcc_cert_manifest.sig
+
+      - name: Timestamp manifest
+        run: |
+          sudo apt-get update && sudo apt-get install -y opentimestamps-client
+          ots stamp ./proofs/fcc_cert_manifest.json || true
+
+      - name: Add audit metadata
+        run: |
+          node -e "
+          const fs = require('fs');
+          const m = JSON.parse(fs.readFileSync('./proofs/fcc_cert_manifest.json','utf8'));
+          m.auditedAt = new Date().toISOString();
+          m.auditedBy = 'GitHub CI (Blockchain Anchored)';
+          fs.writeFileSync('./proofs/fcc_cert_manifest.json', JSON.stringify(m,null,2));
+          "
+
+      - name: Commit and push results
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name 'Flying Circus Bot'
+          git config user.email 'bot@flyingcircuscoffee.com'
+          git add proofs/fcc_cert_manifest.json proofs/fcc_cert_manifest.sig proofs/fcc_cert_manifest.json.ots
+          git commit -m "[skip ci] Proof rebuild $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "No changes"
+          git push origin HEAD:${{ github.ref }}
