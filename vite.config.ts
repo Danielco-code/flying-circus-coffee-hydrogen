@@ -20,24 +20,21 @@ export default defineConfig({
   },
   ssr: {
     optimizeDeps: {
-      /**
-       * Include dependencies here if they throw CJS<>ESM errors.
-       * For example:
-       * > ReferenceError: module is not defined
-       * Then include 'example-dep' in the array below.
-       */
       include: ['set-cookie-parser', 'cookie', 'react-router'],
     },
-    /**
-     * Externalize Node-only modules so Oxygen doesn’t try to bundle them.
-     */
     external: [
       'node:child_process',
       'node:util',
       'node:assert',
       '@remix-run/node',
     ],
-  },
+    noExternal: [],
+    resolve: {
+      alias: {
+        '@remix-run/node': '/virtual/remix-node-stub.js',
+      },
+    },
+  }, // 👈 this closing brace was missing
   server: {
     allowedHosts: ['.tryhydrogen.dev'],
   },
