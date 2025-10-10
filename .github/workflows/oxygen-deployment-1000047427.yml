@@ -46,14 +46,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Re-initialize Oxygen remote
-        run: |
-          npx shopify hydrogen link --force
-
+      
 
       - name: Build and Publish to Oxygen
-        run: |
-          git config --global user.email "bot@flyingcircuscoffee.com"
-          git config --global user.name "Flying Circus Bot"
-          npx shopify hydrogen deploy --path=. --token=${{ secrets.OXYGEN_DEPLOYMENT_TOKEN_1000047427 }}
+        run: npx shopify hydrogen deploy --path=. --token=${{ secrets.OXYGEN_DEPLOYMENT_TOKEN_1000047427 }}
 
