@@ -1,7 +1,7 @@
-import {defineConfig} from 'vite';
-import {hydrogen} from '@shopify/hydrogen/vite';
-import {oxygen} from '@shopify/mini-oxygen/vite';
-import {reactRouter} from '@react-router/dev/vite';
+import { defineConfig } from 'vite';
+import { hydrogen } from '@shopify/hydrogen/vite';
+import { oxygen } from '@shopify/mini-oxygen/vite';
+import { reactRouter } from '@react-router/dev/vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import tailwindcss from '@tailwindcss/vite';
 
@@ -13,19 +13,12 @@ export default defineConfig({
     reactRouter(),
     tsconfigPaths(),
   ],
+
   build: {
+    // Allow a strict Content-Security-Policy without inlining assets as base64:
     assetsInlineLimit: 0,
   },
-  resolve: {
-    alias: {
-      '@remix-run/node': '/virtual/remix-node-stub.js',
-      'node:child_process': '/virtual/child_process-stub.js',
-      'node:util': '/virtual/util-stub.js',
-      'node:assert': '/virtual/assert-stub.js',
-    },
 
-    },
-  },
   ssr: {
     optimizeDeps: {
       include: ['set-cookie-parser', 'cookie', 'react-router'],
@@ -37,7 +30,16 @@ export default defineConfig({
       '@remix-run/node',
     ],
     noExternal: [],
+    resolve: {
+      alias: {
+        '@remix-run/node': '/virtual/remix-node-stub.js',
+        'node:child_process': '/virtual/child_process-stub.js',
+        'node:util': '/virtual/util-stub.js',
+        'node:assert': '/virtual/assert-stub.js',
+      },
+    },
   },
+
   server: {
     allowedHosts: ['.tryhydrogen.dev'],
   },
