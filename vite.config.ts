@@ -14,9 +14,12 @@ export default defineConfig({
     tsconfigPaths(),
   ],
   build: {
-    // Allow a strict Content-Security-Policy
-    // without inlining assets as base64:
     assetsInlineLimit: 0,
+  },
+  resolve: {
+    alias: {
+      '@remix-run/node': '/virtual/remix-node-stub.js',
+    },
   },
   ssr: {
     optimizeDeps: {
@@ -29,12 +32,7 @@ export default defineConfig({
       '@remix-run/node',
     ],
     noExternal: [],
-    resolve: {
-      alias: {
-        '@remix-run/node': '/virtual/remix-node-stub.js',
-      },
-    },
-  }, // 👈 this closing brace was missing
+  },
   server: {
     allowedHosts: ['.tryhydrogen.dev'],
   },
