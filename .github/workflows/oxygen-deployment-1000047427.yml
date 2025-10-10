@@ -1,9 +1,5 @@
 name: Storefront 1000047427
-
-on:
-  push:
-    branches:
-      - main
+on: [push]
 
 permissions:
   contents: read
@@ -15,10 +11,7 @@ jobs:
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
       - name: Setup node.js
         uses: actions/setup-node@v4
