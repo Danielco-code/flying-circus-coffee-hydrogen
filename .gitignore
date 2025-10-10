@@ -7,3 +7,9 @@ node_modules
 .env
 .shopify
 .react-router
+# --- Flying Circus Coffee Proof System ---
+/secrets/*
+!secrets/fcc_public_key.pem
+/node_modules/
+/.env
+

@@ -1,0 +1,14 @@
+{
+  "issuer": "Flying Circus Coffee",
+  "generatedAt": "2025-10-10T14:37:11.057Z",
+  "baseUrl": "https://cdn.flyingcircuscoffee.com",
+  "entries": [
+    {
+      "path": "certs/sample-cert.pdf",
+      "url": "https://cdn.flyingcircuscoffee.com/certs/sample-cert.pdf",
+      "sha256": "13847cf183e05a49ad643f1191f57abce6b9b4a000e410f28b6ac7af0414647e",
+      "size": 47,
+      "modified": "2025-10-10T14:26:02.738Z"
+    }
+  ]
+}

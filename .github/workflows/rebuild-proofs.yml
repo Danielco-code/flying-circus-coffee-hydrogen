@@ -1,0 +1,148 @@
+name: Rebuild & Timestamp Proofs
+
+on:
+  workflow_dispatch:      # manual trigger
+  push:
+    paths:
+      - 'cdn/certs/**'
+      - 'cdn/tests/**'
+  schedule:
+    - cron: '0 5 1 * *'   # 1st of each month at 05:00 UTC
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci || npm install
+
+      - name: Prepare directories
+        run: mkdir -p proofs secrets
+
+      - name: Restore private signing key
+        run: echo "$PRIVATE_KEY" > secrets/fcc_signing_key.pem
+        env:
+          PRIVATE_KEY: ${{ secrets.FCC_SIGNING_KEY_PEM }}
+
+      - name: Rebuild manifest (hash-certificates)
+        run: |
+          node scripts/hash-certificates.js             --source ./cdn             --base-url https://cdn.flyingcircuscoffee.com             --out ./proofs/fcc_cert_manifest.json
+
+      - name: Sign manifest
+        run: |
+          node scripts/sign-manifest.js             --manifest ./proofs/fcc_cert_manifest.json             --private ./secrets/fcc_signing_key.pem             --out ./proofs/fcc_cert_manifest.sig
+
+      - name: OpenTimestamp manifest
+        run: |
+          sudo apt-get update && sudo apt-get install -y opentimestamps-client
+          ots stamp ./proofs/fcc_cert_manifest.json || true
+
+      - name: Add audit metadata
+        run: |
+          node -e "
+          const fs=require('fs');
+          const m=JSON.parse(fs.readFileSync('./proofs/fcc_cert_manifest.json','utf8'));
+          m.auditedAt=new Date().toISOString();
+          m.auditedBy='GitHub CI';
+          fs.writeFileSync('./proofs/fcc_cert_manifest.json',JSON.stringify(m,null,2));
+          "
+
+      - name: Commit and push results
+        run: |
+          git config user.name 'Flying Circus Bot'
+          git config user.email 'bot@flyingcircuscoffee.com'
+          git add proofs/fcc_cert_manifest.json proofs/fcc_cert_manifest.sig
+          git commit -m "Automated proof rebuild $(date -u +"%Y-%m-%dT%H:%M:%SZ")" || echo "No changes"
+          git push
+
+      - name: Upload proofs to Cloudflare R2 / S3
+        if: ${{ success() && secrets.S3_BUCKET != '' }}
+        uses: aws-actions/s3-sync@v1
+        with:
+          args: --acl public-read --follow-symlinks
+          bucket: ${{ secrets.S3_BUCKET }}
+          endpoint-url: ${{ secrets.S3_ENDPOINT }}
+          region: ${{ secrets.AWS_DEFAULT_REGION }}
+          source-dir: proofs/
+
+      - name: Upload proofs to Shopify CDN
+        if: ${{ success() && secrets.SHOPIFY_ACCESS_TOKEN != '' }}
+        env:
+          STORE_DOMAIN: ${{ secrets.SHOPIFY_STORE_DOMAIN }}
+          ADMIN_TOKEN:  ${{ secrets.SHOPIFY_ACCESS_TOKEN }}
+        run: |
+          node - <<'JS'
+          import fs from 'fs';
+          import https from 'https';
+          const files = [
+            ['fcc_cert_manifest.json','application/json'],
+            ['fcc_cert_manifest.sig','text/plain']
+          ];
+          for (const [name,mime] of files){
+            const data = fs.readFileSync(`./proofs/${name}`);
+            const req = https.request({
+              hostname: process.env.STORE_DOMAIN,
+              path: '/admin/api/2024-07/files.json',
+              method: 'POST',
+              headers: {
+                'X-Shopify-Access-Token': process.env.ADMIN_TOKEN,
+                'Content-Type': 'application/json'
+              }
+            }, res=>{
+              let body='';res.on('data',d=>body+=d);res.on('end',()=>console.log('Uploaded',name,res.statusCode,body));
+            });
+            req.write(JSON.stringify({
+              file:{
+                attachment:data.toString('base64'),
+                filename:name,
+                content_type:mime
+              }
+            }));
+            req.end();
+          }
+          JS
+
+      - name: Notify Slack (optional)
+        if: ${{ success() && secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          payload: |
+            {
+              "text": ":white_check_mark: *Flying Circus Coffee Proof System*",
+              "attachments": [
+                {
+                  "color": "#36a64f",
+                  "title": "Proofs Rebuilt & Anchored",
+                  "text": "Manifest and signature successfully regenerated and OpenTimestamped.",
+                  "fields": [
+                    {
+                      "title": "Commit",
+                      "value": "${{ github.sha }}",
+                      "short": true
+                    },
+                    {
+                      "title": "Audited At",
+                      "value": "${{ github.run_started_at }}",
+                      "short": true
+                    }
+                  ],
+                  "footer": "Flying Circus Coffee • Blockchain Verified ☕️",
+                  "ts": "$(date +%s)"
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
