@@ -19,6 +19,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@remix-run/node': '/virtual/remix-node-stub.js',
+      'node:child_process': '/virtual/child_process-stub.js',
+      'node:util': '/virtual/util-stub.js',
+      'node:assert': '/virtual/assert-stub.js',
+    },
+
     },
   },
   ssr: {
