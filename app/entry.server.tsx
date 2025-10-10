@@ -1,3 +1,4 @@
+import './oxygen-shim.js';
 import {ServerRouter} from 'react-router';
 import {isbot} from 'isbot';
 import {renderToReadableStream} from 'react-dom/server';
