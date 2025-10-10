@@ -1,7 +1,14 @@
 // Admin endpoint to rebuild + resign manifest and optionally anchor via OpenTimestamps.
 // Protect with ADMIN_TOKEN env. POST only.
 import type { ActionFunctionArgs } from "@shopify/remix-oxygen";
-import { json } from "@remix-run/node";
+
+// Stubbed json() that works in Oxygen worker
+const json = (data: any, init: any = {}) =>
+  new Response(JSON.stringify(data), {
+    headers: { "Content-Type": "application/json", ...init.headers },
+    status: init.status || 200,
+  });
+
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
