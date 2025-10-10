@@ -1,5 +1,9 @@
 name: Storefront 1000047427
-on: [push]
+
+on:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
