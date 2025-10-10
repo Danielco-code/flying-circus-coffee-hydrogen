@@ -1,7 +1,7 @@
 // Admin endpoint to rebuild + resign manifest and optionally anchor via OpenTimestamps.
 // Protect with ADMIN_TOKEN env. POST only.
 import type { ActionFunctionArgs } from "@shopify/remix-oxygen";
-import { json } from "@shopify/remix-oxygen";
+import { json } from "@remix-run/node";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
