@@ -20,6 +20,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+          persist-credentials: true
+
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -78,6 +82,7 @@ jobs:
           git add proofs/fcc_cert_manifest.json proofs/fcc_cert_manifest.sig proofs/fcc_cert_manifest.json.ots
           git commit -m "[skip ci] Proof rebuild & blockchain timestamp $(date -u +'%Y-%m-%dT%H:%M:%SZ')" || echo "No changes"
           git push origin HEAD:${{ github.ref }}
+
 
 
 
