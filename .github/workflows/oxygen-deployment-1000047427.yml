@@ -1,9 +1,12 @@
 name: Storefront 1000047427
-
 on:
   push:
     branches:
       - main
+      
+concurrency:
+  group: oxygen-deploy
+  cancel-in-progress: true 
 
 permissions:
   contents: read
@@ -11,14 +14,12 @@ permissions:
 
 jobs:
   deploy:
+  if: github.ref == 'refs/heads/main'
     name: Deploy to Oxygen
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
       - name: Setup node.js
         uses: actions/setup-node@v4
